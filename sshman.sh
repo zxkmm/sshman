@@ -14,7 +14,7 @@ PROFILE_CURRENT_SSH_KEY_PASSWORD=""
 profiles_dir="./profiles"
 mkdir -p "$profiles_dir"
 
-declare -a profiles=()
+declare -A profiles=()
 
 ############### XOR UNITS ###############
 encrypt_text() {
@@ -59,13 +59,12 @@ decrypt_text() {
 
 ############### PROFILE MANAGEMENT ###############
 load_profiles() {
-    # reset profile arr
     profiles=()
     if [ -d "$profiles_dir" ]; then
         for profile_file in "$profiles_dir"/*.sshman; do
             if [ -f "$profile_file" ]; then
                 profile_name=$(basename "$profile_file" .sshman)
-                profiles+=("$profile_name")
+                profiles["$profile_name"]=1
             fi
         done
     fi
@@ -83,7 +82,7 @@ save_profile() {
     local encrypted_key_path=$(encrypt_text "$PROFILE_CURRENT_SSH_KEY_PATH" "$encryption_password")
     local encrypted_key_password=$(encrypt_text "$PROFILE_CURRENT_SSH_KEY_PASSWORD" "$encryption_password")
     
-    # save
+    # Save to file
     cat > "$profile_file" << EOF
 ip=$encrypted_ip
 port=$encrypted_port
@@ -93,20 +92,7 @@ key_path=$encrypted_key_path
 key_password=$encrypted_key_password
 EOF
     
-    # check if profile already exists in the array
-    local profile_exists=false
-    for i in "${!profiles[@]}"; do
-        if [ "${profiles[$i]}" == "$PROFILE_CURRENT_PROFILE_NAME" ]; then
-            profile_exists=true
-            break
-        fi
-    done
-    
-    # add
-    if [ "$profile_exists" == "false" ]; then
-        profiles+=("$PROFILE_CURRENT_PROFILE_NAME")
-    fi
-    
+    profiles["$PROFILE_CURRENT_PROFILE_NAME"]=1
     echo "Profile '$PROFILE_CURRENT_PROFILE_NAME' saved successfully"
 }
 
@@ -143,16 +129,7 @@ delete_profile_file() {
     
     if [ -f "$profile_file" ]; then
         rm "$profile_file"
-        
-        # rm profile
-        local new_profiles=()
-        for i in "${!profiles[@]}"; do
-            if [ "${profiles[$i]}" != "$profile_name" ]; then
-                new_profiles+=("${profiles[$i]}")
-            fi
-        done
-        profiles=("${new_profiles[@]}")
-        
+        unset profiles["$profile_name"]
         echo "Profile '$profile_name' deleted successfully"
     else
         echo "Profile file not found: $profile_file"
@@ -165,8 +142,10 @@ list_profiles() {
     if [ ${#profiles[@]} -eq 0 ]; then
         echo "No profiles available"
     else
-        for i in "${!profiles[@]}"; do
-            echo "$((i+1)). ${profiles[$i]}"
+        local i=1
+        for profile in "${!profiles[@]}"; do
+            echo "$i. $profile"
+            ((i++))
         done
     fi
 }
@@ -247,8 +226,12 @@ edit_profile_menu() {
         return
     fi
     
-    for i in "${!profiles[@]}"; do
-        echo "$((i+1)). ${profiles[$i]}"
+    declare -a profile_list=()
+    local i=1
+    for profile in "${!profiles[@]}"; do
+        echo "$i. $profile"
+        profile_list[$i]="$profile"
+        ((i++))
     done
     
     read -p "Enter profile number or name to edit: " selection
@@ -257,27 +240,20 @@ edit_profile_menu() {
     # sel a num
     if [[ "$selection" =~ ^[0-9]+$ ]]; then
         # is a number
-        if [ "$selection" -ge 1 ] && [ "$selection" -le "${#profiles[@]}" ]; then
-            profile_name="${profiles[$((selection-1))]}"
+        if [ "$selection" -ge 1 ] && [ "$selection" -lt "$i" ]; then
+            profile_name="${profile_list[$selection]}"
         else
             echo "Invalid profile number"
             return
         fi
     else
-        # is not a number, check if profile exists
+        # is not a number
         profile_name="$selection"
-        local profile_exists=false
-        for p in "${profiles[@]}"; do
-            if [ "$p" == "$profile_name" ]; then
-                profile_exists=true
-                break
-            fi
-        done
-        
-        if [ "$profile_exists" == "false" ]; then
-            echo "Profile not found"
-            return
-        fi
+    fi
+    
+    if [ -z "${profiles[$profile_name]}" ]; then
+        echo "Profile not found"
+        return
     fi
     
     read -p "Encryption password: " encryption_password
@@ -357,8 +333,13 @@ view_profile_menu() {
         return
     fi
     
-    for i in "${!profiles[@]}"; do
-        echo "$((i+1)). ${profiles[$i]}"
+    # store profile names in an array to maintain order
+    declare -a profile_list=()
+    local i=1
+    for profile in "${!profiles[@]}"; do
+        echo "$i. $profile"
+        profile_list[$i]="$profile"
+        ((i++))
     done
     
     read -p "Enter profile number or name to view: " selection
@@ -367,27 +348,20 @@ view_profile_menu() {
     # if selection is a number
     if [[ "$selection" =~ ^[0-9]+$ ]]; then
         # is a number
-        if [ "$selection" -ge 1 ] && [ "$selection" -le "${#profiles[@]}" ]; then
-            profile_name="${profiles[$((selection-1))]}"
+        if [ "$selection" -ge 1 ] && [ "$selection" -lt "$i" ]; then
+            profile_name="${profile_list[$selection]}"
         else
             echo "Invalid profile number"
             return
         fi
     else
-        # not a number, check if profile exists
+        # not a number
         profile_name="$selection"
-        local profile_exists=false
-        for p in "${profiles[@]}"; do
-            if [ "$p" == "$profile_name" ]; then
-                profile_exists=true
-                break
-            fi
-        done
-        
-        if [ "$profile_exists" == "false" ]; then
-            echo "Profile not found"
-            return
-        fi
+    fi
+    
+    if [ -z "${profiles[$profile_name]}" ]; then
+        echo "Profile not found"
+        return
     fi
     
     read -p "Encryption password: " encryption_password
@@ -431,8 +405,13 @@ connect_ssh() {
         return
     fi
     
-    for i in "${!profiles[@]}"; do
-        echo "$((i+1)). ${profiles[$i]}"
+    # store profile names in an array to maintain order
+    declare -a profile_list=()
+    local i=1
+    for profile in "${!profiles[@]}"; do
+        echo "$i. $profile"
+        profile_list[$i]="$profile"
+        ((i++))
     done
     
     read -p "Enter profile number or name to connect: " selection
@@ -441,27 +420,20 @@ connect_ssh() {
     # check if selection is a number
     if [[ "$selection" =~ ^[0-9]+$ ]]; then
         # if number
-        if [ "$selection" -ge 1 ] && [ "$selection" -le "${#profiles[@]}" ]; then
-            profile_name="${profiles[$((selection-1))]}"
+        if [ "$selection" -ge 1 ] && [ "$selection" -lt "$i" ]; then
+            profile_name="${profile_list[$selection]}"
         else
             echo "Invalid profile number"
             return
         fi
     else
-        # not number, check if profile exists
+        # not number
         profile_name="$selection"
-        local profile_exists=false
-        for p in "${profiles[@]}"; do
-            if [ "$p" == "$profile_name" ]; then
-                profile_exists=true
-                break
-            fi
-        done
-        
-        if [ "$profile_exists" == "false" ]; then
-            echo "Profile not found"
-            return
-        fi
+    fi
+    
+    if [ -z "${profiles[$profile_name]}" ]; then
+        echo "Profile not found"
+        return
     fi
     
     read -p "Encryption password: " encryption_password
@@ -583,8 +555,13 @@ main_menu() {
                 if [ ${#profiles[@]} -eq 0 ]; then
                     echo "No profiles available"
                 else
-                    for i in "${!profiles[@]}"; do
-                        echo "$((i+1)). ${profiles[$i]}"
+                    # store profile names in an array to maintain order
+                    declare -a profile_list=()
+                    local i=1
+                    for profile in "${!profiles[@]}"; do
+                        echo "$i. $profile"
+                        profile_list[$i]="$profile"
+                        ((i++))
                     done
                     
                     read -p "Enter profile number or name to delete: " selection
@@ -592,33 +569,25 @@ main_menu() {
                     
                     # check if selection is a number
                     if [[ "$selection" =~ ^[0-9]+$ ]]; then
-                        # if it's a number
-                        if [ "$selection" -ge 1 ] && [ "$selection" -le "${#profiles[@]}" ]; then
-                            profile_name="${profiles[$((selection-1))]}"
+                        # if it's a number, get the profile name from the arr
+                        if [ "$selection" -ge 1 ] && [ "$selection" -lt "$i" ]; then
+                            profile_name="${profile_list[$selection]}"
                         else
                             echo "Invalid profile number"
                             break
                         fi
                     else
-                        # if not a number, check if profile exists
+                        # if not a number, use as the profile name
                         profile_name="$selection"
-                        local profile_exists=false
-                        for p in "${profiles[@]}"; do
-                            if [ "$p" == "$profile_name" ]; then
-                                profile_exists=true
-                                break
-                            fi
-                        done
-                        
-                        if [ "$profile_exists" == "false" ]; then
-                            echo "Profile not found"
-                            break
-                        fi
                     fi
                     
-                    read -p "Are you sure you want to delete '$profile_name'? (y/n): " confirm
-                    if [ "$confirm" == "y" ]; then
-                        delete_profile_file "$profile_name"
+                    if [ -n "${profiles[$profile_name]}" ]; then
+                        read -p "Are you sure you want to delete '$profile_name'? (y/n): " confirm
+                        if [ "$confirm" == "y" ]; then
+                            delete_profile_file "$profile_name"
+                        fi
+                    else
+                        echo "Profile not found"
                     fi
                 fi
                 ;;
