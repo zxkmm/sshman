@@ -1,5 +1,5 @@
 CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP="false"
-CONFIG_IF_COVER_PASSWORD_WITH_MD5="false"
+CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW="false"
 
 PROFILE_CURRENT_PROFILE_NAME=""
 PROFILE_CURRENT_PROFILE_ENCRIPTION_PASSWORD=""
@@ -383,7 +383,7 @@ view_profile_menu() {
     echo "Username: $PROFILE_CURRENT_USERNAME"
     
     if [ -n "$PROFILE_CURRENT_PASSWORD" ]; then
-        if [ "$CONFIG_IF_COVER_PASSWORD_WITH_MD5" == "true" ]; then
+        if [ "$CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW" == "true" ]; then
             echo "Password: *****"
         else
             echo "Password: $PROFILE_CURRENT_PASSWORD"
@@ -392,7 +392,7 @@ view_profile_menu() {
     elif [ -n "$PROFILE_CURRENT_SSH_KEY_PATH" ]; then
         echo "SSH Key: $PROFILE_CURRENT_SSH_KEY_PATH"
         if [ -n "$PROFILE_CURRENT_SSH_KEY_PASSWORD" ]; then
-            if [ "$CONFIG_IF_COVER_PASSWORD_WITH_MD5" == "true" ]; then
+            if [ "$CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW" == "true" ]; then
                 echo "Key Password: *****"
             else
                 echo "Key Password: $PROFILE_CURRENT_SSH_KEY_PASSWORD"
@@ -488,9 +488,9 @@ read_config(){
             if [ "$key" == "CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP" ]; then
                 CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP="$value"
                 echo "CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP=$CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP"
-            elif [ "$key" == "CONFIG_IF_COVER_PASSWORD_WITH_MD5" ]; then
-                CONFIG_IF_COVER_PASSWORD_WITH_MD5="$value"
-                echo "CONFIG_IF_COVER_PASSWORD_WITH_MD5=$CONFIG_IF_COVER_PASSWORD_WITH_MD5"
+            elif [ "$key" == "CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW" ]; then
+                CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW="$value"
+                echo "CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW=$CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW"
             fi
         done < "$config_file_path"
     fi
@@ -509,15 +509,15 @@ prompt_user_set_and_save_config(){
     fi
     CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP="$show_list_input"
 
-    read -p "Mask passwords in profile view (true/false) [$CONFIG_IF_COVER_PASSWORD_WITH_MD5]: " mask_pwd_input
-    mask_pwd_input=${mask_pwd_input:-$CONFIG_IF_COVER_PASSWORD_WITH_MD5}
+    read -p "Mask passwords in profile view (true/false) [$CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW]: " mask_pwd_input
+    mask_pwd_input=${mask_pwd_input:-$CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW}
 
     # verify
     if [ "$mask_pwd_input" != "true" ] && [ "$mask_pwd_input" != "false" ]; then
         echo "Invalid input for mask passwords setting"
         return
     else
-        CONFIG_IF_COVER_PASSWORD_WITH_MD5="$mask_pwd_input"
+        CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW="$mask_pwd_input"
         if_succeed=true
     fi
 
@@ -525,7 +525,7 @@ prompt_user_set_and_save_config(){
         # save
         cat > "$config_file_path" << EOF
 CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP=$CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP
-CONFIG_IF_COVER_PASSWORD_WITH_MD5=$CONFIG_IF_COVER_PASSWORD_WITH_MD5
+CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW=$CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW
 EOF
         echo "Configuration saved successfully"
     else
