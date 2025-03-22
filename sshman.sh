@@ -22,8 +22,9 @@ encrypt_text() {
     local password="$2"
     local encrypted=""
     local pass_len=${#password}
+    local i=0
     
-    for ((i=0; i<${#text}; i++)); do
+    while [ $i -lt ${#text} ]; do
         local char="${text:$i:1}"
         local pass_char="${password:$(($i % $pass_len)):1}"
         local char_ascii=$(printf "%d" "'$char")
@@ -32,6 +33,7 @@ encrypt_text() {
         
         # convert to hex to save
         encrypted="${encrypted}$(printf "%02x" $encrypted_ascii)"
+        i=$((i+1))
     done
     
     echo "$encrypted"
@@ -42,8 +44,9 @@ decrypt_text() {
     local password="$2"
     local decrypted=""
     local pass_len=${#password}
+    local i=0
     
-    for ((i=0; i<${#encrypted}; i+=2)); do
+    while [ $i -lt ${#encrypted} ]; do
         local hex_pair="${encrypted:$i:2}"
         local encrypted_ascii=$(printf "%d" "0x$hex_pair")
         local pass_char="${password:$((($i/2) % $pass_len)):1}"
@@ -51,6 +54,7 @@ decrypt_text() {
         local decrypted_ascii=$(( $encrypted_ascii ^ $pass_ascii ))
         
         decrypted="${decrypted}$(printf "\\$(printf '%03o' $decrypted_ascii)")"
+        i=$((i+2))
     done
     
     echo "$decrypted"
