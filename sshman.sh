@@ -14,7 +14,7 @@ PROFILE_CURRENT_SSH_KEY_PASSWORD=""
 profiles_dir="./profiles"
 mkdir -p "$profiles_dir"
 
-declare -A profiles=()
+profiles=""
 
 ############### XOR UNITS ###############
 encrypt_text() {
@@ -59,16 +59,17 @@ decrypt_text() {
 
 ############### PROFILE MANAGEMENT ###############
 load_profiles() {
-    profiles=()
+    profiles=""
     if [ -d "$profiles_dir" ]; then
         for profile_file in "$profiles_dir"/*.sshman; do
             if [ -f "$profile_file" ]; then
                 profile_name=$(basename "$profile_file" .sshman)
-                profiles["$profile_name"]=1
+                profiles="$profiles $profile_name"
             fi
         done
     fi
-    echo "Loaded ${#profiles[@]} profiles"
+    profile_count=$(echo "$profiles" | wc -w)
+    echo "Loaded $profile_count profiles"
 }
 
 save_profile() {
@@ -92,7 +93,9 @@ key_path=$encrypted_key_path
 key_password=$encrypted_key_password
 EOF
     
-    profiles["$PROFILE_CURRENT_PROFILE_NAME"]=1
+    if ! echo "$profiles" | grep -q -w "$PROFILE_CURRENT_PROFILE_NAME"; then
+        profiles="$profiles $PROFILE_CURRENT_PROFILE_NAME"
+    fi
     echo "Profile '$PROFILE_CURRENT_PROFILE_NAME' saved successfully"
 }
 
@@ -129,7 +132,7 @@ delete_profile_file() {
     
     if [ -f "$profile_file" ]; then
         rm "$profile_file"
-        unset profiles["$profile_name"]
+        profiles=$(echo "$profiles" | sed "s/ $profile_name / /g")
         echo "Profile '$profile_name' deleted successfully"
     else
         echo "Profile file not found: $profile_file"
@@ -139,13 +142,13 @@ delete_profile_file() {
 
 list_profiles() {
     echo "Available profiles:"
-    if [ ${#profiles[@]} -eq 0 ]; then
+    if [ -z "$profiles" ]; then
         echo "No profiles available"
     else
         local i=1
-        for profile in "${!profiles[@]}"; do
+        for profile in $profiles; do
             echo "$i. $profile"
-            ((i++))
+            i=$((i+1))
         done
     fi
 }
@@ -221,17 +224,17 @@ add_profile_menu() {
 
 edit_profile_menu() {
     echo "Available profiles:"
-    if [ ${#profiles[@]} -eq 0 ]; then
+    if [ -z "$profiles" ]; then
         echo "No profiles available"
         return
     fi
     
     declare -a profile_list=()
     local i=1
-    for profile in "${!profiles[@]}"; do
+    for profile in $profiles; do
         echo "$i. $profile"
-        profile_list[$i]="$profile"
-        ((i++))
+        profile_list[i]="$profile"
+        i=$((i+1))
     done
     
     read -p "Enter profile number or name to edit: " selection
@@ -251,7 +254,7 @@ edit_profile_menu() {
         profile_name="$selection"
     fi
     
-    if [ -z "${profiles[$profile_name]}" ]; then
+    if ! echo "$profiles" | grep -q -w "$profile_name"; then
         echo "Profile not found"
         return
     fi
@@ -328,7 +331,7 @@ edit_profile_menu() {
 view_profile_menu() {
     # list profiles with numbers
     echo "Available profiles:"
-    if [ ${#profiles[@]} -eq 0 ]; then
+    if [ -z "$profiles" ]; then
         echo "No profiles available"
         return
     fi
@@ -336,10 +339,10 @@ view_profile_menu() {
     # store profile names in an array to maintain order
     declare -a profile_list=()
     local i=1
-    for profile in "${!profiles[@]}"; do
+    for profile in $profiles; do
         echo "$i. $profile"
         profile_list[$i]="$profile"
-        ((i++))
+        i=$((i+1))
     done
     
     read -p "Enter profile number or name to view: " selection
@@ -359,7 +362,7 @@ view_profile_menu() {
         profile_name="$selection"
     fi
     
-    if [ -z "${profiles[$profile_name]}" ]; then
+    if ! echo "$profiles" | grep -q -w "$profile_name"; then
         echo "Profile not found"
         return
     fi
@@ -400,7 +403,7 @@ view_profile_menu() {
 connect_ssh() {
     # first list available profiles with numbers
     echo "Available profiles:"
-    if [ ${#profiles[@]} -eq 0 ]; then
+    if [ -z "$profiles" ]; then
         echo "No profiles available"
         return
     fi
@@ -408,10 +411,10 @@ connect_ssh() {
     # store profile names in an array to maintain order
     declare -a profile_list=()
     local i=1
-    for profile in "${!profiles[@]}"; do
+    for profile in $profiles; do
         echo "$i. $profile"
         profile_list[$i]="$profile"
-        ((i++))
+        i=$((i+1))
     done
     
     read -p "Enter profile number or name to connect: " selection
@@ -431,7 +434,7 @@ connect_ssh() {
         profile_name="$selection"
     fi
     
-    if [ -z "${profiles[$profile_name]}" ]; then
+    if ! echo "$profiles" | grep -q -w "$profile_name"; then
         echo "Profile not found"
         return
     fi
@@ -552,16 +555,16 @@ main_menu() {
             6)
                 # list profiles with numbers
                 echo "Available profiles:"
-                if [ ${#profiles[@]} -eq 0 ]; then
+                if [ -z "$profiles" ]; then
                     echo "No profiles available"
                 else
                     # store profile names in an array to maintain order
                     declare -a profile_list=()
                     local i=1
-                    for profile in "${!profiles[@]}"; do
+                    for profile in $profiles; do
                         echo "$i. $profile"
                         profile_list[$i]="$profile"
-                        ((i++))
+                        i=$((i+1))
                     done
                     
                     read -p "Enter profile number or name to delete: " selection
@@ -581,7 +584,7 @@ main_menu() {
                         profile_name="$selection"
                     fi
                     
-                    if [ -n "${profiles[$profile_name]}" ]; then
+                    if echo "$profiles" | grep -q -w "$profile_name"; then
                         read -p "Are you sure you want to delete '$profile_name'? (y/n): " confirm
                         if [ "$confirm" == "y" ]; then
                             delete_profile_file "$profile_name"
