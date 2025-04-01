@@ -1,5 +1,8 @@
 CONFIG_IF_SHOW_LIST_TO_LOGIN_AT_STARTUP="false"
 CONFIG_IF_COVER_PASSWORD_IN_DETAIL_VIEW="false"
+# CONFIG_IF_EXTENDING_AUTHENTICATION_KEY_FOR_MORE_SECURITY="false" 
+# TODO: If enable, will convert user's auth password with some spread out methods like md5 or hash 
+# (but still use XOR as final decode, just consider it as make password longer)
 
 PROFILE_CURRENT_PROFILE_NAME=""
 PROFILE_CURRENT_PROFILE_ENCRIPTION_PASSWORD=""

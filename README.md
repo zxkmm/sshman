@@ -1,7 +1,8 @@
 # sshman
-a CLI tool to use / CRUD your remote ssh entrances, designed for fake shell enviroment like a-Shell, as well as regular Linux machine.
+a CLI tool to use / CRUD your remote ssh entrances, designed for both UNIX/Linux and some pseudo terminal.
 # warning
 ## this is not for
+- Non-bash enviroment
 - this tool is not for manage your local ssh config.
 - this tool is not for managing loads of profiles (let's say more than 1000).
 - XOR encryption is not safe.
