@@ -6,7 +6,7 @@ a CLI tool to use / CRUD your remote ssh entrances, designed for both UNIX/Linux
 - this tool is not for manage your local ssh config.
 - this tool is not for managing loads of profiles (let's say more than 1000).
 - XOR encryption is not safe.
-- can't verify if decrypt password is correct, because it would make XOR even more dangerous.
+- can't verify if decrypt password is correct, because it would make XOR even more dangerous. (Because XOR is vuln to Known-Plaintext Attack)
 - md5 is not safe.
 ## be careful
 - this tool won't kept your ssh profiles (signature/IP/password) very much safe, just like other tools that save your profiles.
